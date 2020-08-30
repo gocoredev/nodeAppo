@@ -1,6 +1,7 @@
 import Appointment from '../models/Appointment'
 import AppointmentsRepository from '../repositories/AppointmentsRepository'
 import {startOfHour} from 'date-fns'
+import {getCustomRepository} from 'typeorm'
 /* 
 /*  Recebimento de Informações 
 /* Tratativas de erros
@@ -9,33 +10,33 @@ Acesso
 
 interface RequestDto{
     date: Date;
-    provider: string;
+    provider_id: string;
 }
 
 
 /* Dependency Inversion */
 
 class CreateAppointmentService {
-    private appointmentsRepository: AppointmentsRepository
 
-    constructor(appointmentsRepository: AppointmentsRepository) {
-        this.appointmentsRepository = appointmentsRepository
-    }
+    public async  execute({date, provider_id}:RequestDto): Promise<Appointment> {
 
-    public execute({date, provider}:RequestDto): Appointment {
+        const appointmentsRepository = getCustomRepository(AppointmentsRepository)
+
         const appointmentDate = startOfHour(date)
 
-        const findAppointmentInSameDate = this.appointmentsRepository.findByDate(appointmentDate)
+        const findAppointmentInSameDate = await appointmentsRepository.findByDate(appointmentDate)
 
         if(findAppointmentInSameDate) {
             
             throw Error('Horario já ocupado')
         }
 
-        const appointment = this.appointmentsRepository.create({
-            provider,
+        const appointment = appointmentsRepository.create({
+            provider_id,
             date: appointmentDate
         })
+
+        await appointmentsRepository.save(appointment)
 
         return appointment;
     }
